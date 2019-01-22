@@ -304,24 +304,28 @@ func rulesChangeSets(current, desired []elbv2.Rule) (add []elbv2.Rule, modify []
 
 
 	for _, desiredRule := range desired {
+		ruleNeedsToBeAdded := true
 		for _, currentRule := range current {
 			if reflect.DeepEqual(currentRule.Conditions, desiredRule.Conditions) {
-				if reflect.DeepEqual(currentRule.Actions, desiredRule.Actions) {
-					// the rule is the same, we can ignore
-					continue
-				}else{
+				// since we found the rule, we will either modify or ignore it
+				// never add it
+				ruleNeedsToBeAdded = false
+				if ! reflect.DeepEqual(currentRule.Actions, desiredRule.Actions) {
+					// the rule is different, let's add it to the modify list
 					modify = append(modify, desiredRule)
-					continue
 				}
+				break // no need to keep searching
 			}
 		}
-		// if we are here, the desiredRule does not exist
-		// so we make sure it will have a unique priority
-		maxPriority += 1
-		maxPriorityStr := fmt.Sprintf("%d",maxPriority);
-		desiredRule.Priority = &maxPriorityStr
-		// and then we add it to the list
-		add = append(add, desiredRule)
+		if ruleNeedsToBeAdded {
+			// if we are here, the desiredRule does not exist
+			// so we make sure it will have a unique priority
+			maxPriority += 1
+			maxPriorityStr := fmt.Sprintf("%d",maxPriority);
+			desiredRule.Priority = &maxPriorityStr
+			// and then we add it to the list
+			add = append(add, desiredRule)
+		}
 	}
 
 	return add, modify, remove
@@ -379,7 +383,8 @@ func condition(field string, values ...string) *elbv2.RuleCondition {
 
 func sortConditions(conditions []*elbv2.RuleCondition) {
 	for _, cond := range conditions {
-		sort.Slice(cond.Values, func(i, j int) bool { return aws.StringValue(cond.Values[i]) < aws.StringValue(cond.Values[j]) })
+		sort.Slice(cond.Values, func(i, j int) bool {
+			return aws.StringValue(cond.Values[i]) < aws.StringValue(cond.Values[j]) })
 	}
 
 	sort.Slice(conditions, func(i, j int) bool {
