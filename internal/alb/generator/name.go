@@ -35,7 +35,8 @@ func (gen *NameGenerator) NameLB(namespace string, ingressName string) string {
 		name = name[:26]
 	}
 	name = name + "-" + hash
-	return name
+	// return name
+	return "k8s-alb"
 }
 
 func (gen *NameGenerator) NameTG(namespace string, ingressName string, serviceName, servicePort string,
