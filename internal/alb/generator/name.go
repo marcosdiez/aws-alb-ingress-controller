@@ -18,9 +18,13 @@ var _ sg.NameGenerator = (*NameGenerator)(nil)
 
 type NameGenerator struct {
 	ALBNamePrefix string
+	ForceALBName string
 }
 
 func (gen *NameGenerator) NameLB(namespace string, ingressName string) string {
+	if gen.ForceALBName != "" {
+		return gen.ForceALBName
+	}
 	hasher := md5.New()
 	_, _ = hasher.Write([]byte(namespace + ingressName))
 	hash := hex.EncodeToString(hasher.Sum(nil))[:4]
@@ -35,8 +39,7 @@ func (gen *NameGenerator) NameLB(namespace string, ingressName string) string {
 		name = name[:26]
 	}
 	name = name + "-" + hash
-	// return name
-	return "k8s-alb"
+	return name
 }
 
 func (gen *NameGenerator) NameTG(namespace string, ingressName string, serviceName, servicePort string,

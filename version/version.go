@@ -30,7 +30,7 @@ var (
 // String returns information about the release.
 func String() string {
 	return fmt.Sprintf(`-------------------------------------------------------------------------------
-AWS ALB Ingress controller MDIEZ6
+AWS ALB Ingress controller with ForceALBName patch
   Release:    %v
   Build:      %v
   Repository: %v

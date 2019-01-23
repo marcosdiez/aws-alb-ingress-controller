@@ -18,6 +18,7 @@ const (
 	defaultIngressClass            = ""
 	defaultAnnotationPrefix        = "alb.ingress.kubernetes.io"
 	defaultALBNamePrefix           = ""
+	defaultForceALBName            = ""
 	defaultTargetType              = elbv2.TargetTypeEnumInstance
 	defaultBackendProtocol         = elbv2.ProtocolEnumHttp
 	defaultRestrictScheme          = false
@@ -38,6 +39,7 @@ type Configuration struct {
 
 	AnnotationPrefix       string
 	ALBNamePrefix          string
+	ForceALBName           string
 	DefaultTags            map[string]string
 	DefaultTargetType      string
 	DefaultBackendProtocol string
@@ -72,6 +74,10 @@ func (cfg *Configuration) BindFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&cfg.ALBNamePrefix, "alb-name-prefix", defaultALBNamePrefix,
 		`Prefix to add to ALB resources (11 alphanumeric characters or less)`)
+
+	fs.StringVar(&cfg.ForceALBName, "force-alb-name", defaultForceALBName,
+		`Force the name of the ALB. Also makes sure every Ingress Rule in every Namespace will share the same ALB. Overwrides alb-name-prefix (32 alphanumeric characters or less)`)
+
 	fs.StringToStringVar(&cfg.DefaultTags, "default-tags", defaultDefaultTags,
 		`Default tags to add to all ALBs`)
 	fs.StringVar(&cfg.DefaultTargetType, "target-type", defaultTargetType,
@@ -125,6 +131,14 @@ func (cfg *Configuration) Validate() error {
 	}
 	if len(cfg.ALBNamePrefix) == 0 {
 		cfg.ALBNamePrefix = generateALBNamePrefix(cfg.ClusterName)
+	}
+	if cfg.ForceALBName != "" {
+		if len(cfg.ForceALBName) > 32  {
+			return fmt.Errorf("ForceALBName must be 32 characters or less")
+		}
+		if len(cfg.ALBNamePrefix) > 0 {
+			return fmt.Errorf("ForceALBName and ALBNamePrefix are mutually exclusive")
+		}
 	}
 
 	// TODO: I know, bad smell here:D

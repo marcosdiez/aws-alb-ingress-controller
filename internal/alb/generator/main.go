@@ -11,6 +11,7 @@ func NewNameTagGenerator(cfg config.Configuration) *NameTagGenerator {
 	return &NameTagGenerator{
 		NameGenerator{
 			ALBNamePrefix: cfg.ALBNamePrefix,
+			ForceALBName: cfg.ForceALBName,
 		},
 		TagGenerator{
 			ClusterName: cfg.ClusterName,
