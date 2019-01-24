@@ -17,7 +17,7 @@ import (
 	"github.com/kubernetes-sigs/aws-alb-ingress-controller/pkg/util/log"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
-	// "k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // RulesController provides functionality to manage rules on listeners
@@ -56,7 +56,7 @@ func (c *rulesController) Reconcile(ctx context.Context, listener *elbv2.Listene
 }
 
 func (c *rulesController) reconcileRules(ctx context.Context, lsArn string, current []elbv2.Rule, desired []elbv2.Rule) error {
-	additions, modifies, removals := rulesChangeSets(current, desired)
+	additions, modifies, removals := rulesChangeSets(current, desired, c.usingOnlyOneAlb)
 
 	for _, rule := range additions {
 		albctx.GetLogger(ctx).Infof("creating rule %v on %v", aws.StringValue(rule.Priority), lsArn)
@@ -278,21 +278,58 @@ func getMaxPriority(ruleSet []elbv2.Rule) (maxPriority int64 ){
 	return maxPriority
 }
 
+func rulesChangeSets(current, desired []elbv2.Rule, usingOnlyOneAlb bool) (add []elbv2.Rule, modify []elbv2.Rule, remove []elbv2.Rule) {
+	if( usingOnlyOneAlb ){
+		return rulesChangeSetsSingleAlb(current, desired)
+	}else {
+		return rulesChangeSetsMultipleAlbs(current, desired)
+	}
+}
 
 // rulesChangeSets compares desired to current, returning a list of rules to add, modify and remove from current to match desired
-func rulesChangeSets(current, desired []elbv2.Rule) (add []elbv2.Rule, modify []elbv2.Rule, remove []elbv2.Rule) {
+func rulesChangeSetsMultipleAlbs(current, desired []elbv2.Rule) (add []elbv2.Rule, modify []elbv2.Rule, remove []elbv2.Rule) {
+	currentMap := make(map[string]elbv2.Rule, len(current))
+	desiredMap := make(map[string]elbv2.Rule, len(desired))
+	for _, i := range current {
+		currentMap[aws.StringValue(i.Priority)] = i
+	}
+	for _, i := range desired {
+		desiredMap[aws.StringValue(i.Priority)] = i
+	}
+	currentKeys := sets.StringKeySet(currentMap)
+	desiredKeys := sets.StringKeySet(desiredMap)
+	for key := range desiredKeys.Difference(currentKeys) {
+		add = append(add, desiredMap[key])
+	}
+	for key := range currentKeys.Difference(desiredKeys) {
+		remove = append(remove, currentMap[key])
+	}
+
+	for key := range currentKeys.Intersection(desiredKeys) {
+		currentRule := currentMap[key]
+		desiredRule := desiredMap[key]
+		desiredRule.RuleArn = currentRule.RuleArn
+
+		sortConditions(currentRule.Conditions)
+		sortConditions(desiredRule.Conditions)
+		sortActions(currentRule.Actions)
+		sortActions(desiredRule.Actions)
+		if !reflect.DeepEqual(currentRule, desiredRule) {
+			modify = append(modify, desiredRule)
+		}
+	}
+	return add, modify, remove
+}
+
+
+// in case of a single ALB, things are a little bit different:
+// we update outdated rules
+// we add new rules
+// we never delete a single old rule. These must, for now, be delete manually
+//
+func rulesChangeSetsSingleAlb(current, desired []elbv2.Rule) (add []elbv2.Rule, modify []elbv2.Rule, remove []elbv2.Rule) {
 
 	maxPriority := getMaxPriority(current)
-
-
-	// 	sortConditions(currentRule.Conditions)
-	// 	sortConditions(desiredRule.Conditions)
-	// 	sortActions(currentRule.Actions)
-	// 	sortActions(desiredRule.Actions)
-	// 	if !reflect.DeepEqual(currentRule, desiredRule) {
-	// 		modify = append(modify, desiredRule)
-	// 	}
-	// }
 
 	for _, desiredRule := range desired {
 		sortConditions(desiredRule.Conditions)
@@ -323,7 +360,7 @@ func rulesChangeSets(current, desired []elbv2.Rule) (add []elbv2.Rule, modify []
 			// if we are here, the desiredRule does not exist
 			// so we make sure it will have a unique priority
 			maxPriority += 1
-			maxPriorityStr := fmt.Sprintf("%d",maxPriority);
+			maxPriorityStr := fmt.Sprintf("%d", maxPriority);
 			desiredRule.Priority = &maxPriorityStr
 			// and then we add it to the list
 			add = append(add, desiredRule)
@@ -331,49 +368,6 @@ func rulesChangeSets(current, desired []elbv2.Rule) (add []elbv2.Rule, modify []
 	}
 
 	return add, modify, remove
-	// now we have populated [add] and [modify]. [remove] will be empty by design.
-	// next step, make sure the damn priority is unique among rules
-
-
-
-
-
-			// Actions:    rule.Actions,
-			// Conditions: rule.Conditions,
-			// RuleArn:    rule.RuleArn,
-
-
-	// currentMap := make(map[string]elbv2.Rule, len(current))
-	// desiredMap := make(map[string]elbv2.Rule, len(desired))
-	// for _, i := range current {
-	// 	currentMap[aws.StringValue(i.Priority)] = i
-	// }
-	// for _, i := range desired {
-	// 	desiredMap[aws.StringValue(i.Priority)] = i
-	// }
-	// currentKeys := sets.StringKeySet(currentMap)
-	// desiredKeys := sets.StringKeySet(desiredMap)
-	// for key := range desiredKeys.Difference(currentKeys) {
-	// 	add = append(add, desiredMap[key])
-	// }
-	// for key := range currentKeys.Difference(desiredKeys) {
-	// 	remove = append(remove, currentMap[key])
-	// }
-
-	// for key := range currentKeys.Intersection(desiredKeys) {
-	// 	currentRule := currentMap[key]
-	// 	desiredRule := desiredMap[key]
-	// 	desiredRule.RuleArn = currentRule.RuleArn
-
-	// 	sortConditions(currentRule.Conditions)
-	// 	sortConditions(desiredRule.Conditions)
-	// 	sortActions(currentRule.Actions)
-	// 	sortActions(desiredRule.Actions)
-	// 	if !reflect.DeepEqual(currentRule, desiredRule) {
-	// 		modify = append(modify, desiredRule)
-	// 	}
-	// }
-	// return add, modify, remove
 }
 
 func condition(field string, values ...string) *elbv2.RuleCondition {
@@ -385,8 +379,7 @@ func condition(field string, values ...string) *elbv2.RuleCondition {
 
 func sortConditions(conditions []*elbv2.RuleCondition) {
 	for _, cond := range conditions {
-		sort.Slice(cond.Values, func(i, j int) bool {
-			return aws.StringValue(cond.Values[i]) < aws.StringValue(cond.Values[j]) })
+		sort.Slice(cond.Values, func(i, j int) bool { return aws.StringValue(cond.Values[i]) < aws.StringValue(cond.Values[j]) })
 	}
 
 	sort.Slice(conditions, func(i, j int) bool {
