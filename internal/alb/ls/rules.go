@@ -27,16 +27,18 @@ type RulesController interface {
 }
 
 // NewRulesController constructs RulesController
-func NewRulesController(cloud aws.CloudAPI, authModule auth.Module) RulesController {
+func NewRulesController(cloud aws.CloudAPI, authModule auth.Module, usingOnlyOneAlb bool) RulesController {
 	return &rulesController{
 		cloud:      cloud,
 		authModule: authModule,
+		usingOnlyOneAlb: usingOnlyOneAlb,
 	}
 }
 
 type rulesController struct {
 	cloud      aws.CloudAPI
 	authModule auth.Module
+	usingOnlyOneAlb bool
 }
 
 // Reconcile modifies AWS resources to match the rules defined in the Ingress

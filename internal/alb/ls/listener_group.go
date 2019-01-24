@@ -24,8 +24,8 @@ type GroupController interface {
 	Delete(ctx context.Context, lbArn string) error
 }
 
-func NewGroupController(store store.Storer, cloud aws.CloudAPI, authModule auth.Module) GroupController {
-	lsController := NewController(cloud, authModule)
+func NewGroupController(store store.Storer, cloud aws.CloudAPI, authModule auth.Module, usingOnlyOneAlb bool) GroupController {
+	lsController := NewController(cloud, authModule, usingOnlyOneAlb)
 	return &defaultGroupController{
 		cloud:        cloud,
 		store:        store,

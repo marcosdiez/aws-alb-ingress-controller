@@ -62,7 +62,10 @@ func newReconciler(config *config.Configuration, mgr manager.Manager, mc metric.
 	tagsController := tags.NewController(cloud)
 	endpointResolver := backend.NewEndpointResolver(store, cloud)
 	tgGroupController := tg.NewGroupController(cloud, store, nameTagGenerator, tagsController, endpointResolver)
-	lsGroupController := ls.NewGroupController(store, cloud, authModule)
+
+	usingOnlyOneAlb := len(config.ForceALBName) > 0
+	lsGroupController := ls.NewGroupController(store, cloud, authModule, usingOnlyOneAlb)
+
 	sgAssociationController := sg.NewAssociationController(store, cloud, tagsController, nameTagGenerator)
 	lbController := lb.NewController(cloud, store,
 		nameTagGenerator, tgGroupController, lsGroupController, sgAssociationController, tagsController)

@@ -51,8 +51,8 @@ type Controller interface {
 	Reconcile(ctx context.Context, options ReconcileOptions) error
 }
 
-func NewController(cloud aws.CloudAPI, authModule auth.Module) Controller {
-	rulesController := NewRulesController(cloud, authModule)
+func NewController(cloud aws.CloudAPI, authModule auth.Module, usingOnlyOneAlb bool) Controller {
+	rulesController := NewRulesController(cloud, authModule, usingOnlyOneAlb)
 	return &defaultController{
 		cloud:           cloud,
 		authModule:      authModule,
