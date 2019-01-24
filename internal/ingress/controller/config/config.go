@@ -129,15 +129,16 @@ func (cfg *Configuration) Validate() error {
 	if len(cfg.ALBNamePrefix) > 12 {
 		return fmt.Errorf("ALBNamePrefix must be 12 characters or less")
 	}
-	if len(cfg.ALBNamePrefix) == 0 {
-		cfg.ALBNamePrefix = generateALBNamePrefix(cfg.ClusterName)
-	}
 	if cfg.ForceALBName != "" {
 		if len(cfg.ForceALBName) > 32  {
 			return fmt.Errorf("ForceALBName must be 32 characters or less")
 		}
 		if len(cfg.ALBNamePrefix) > 0 {
-			return fmt.Errorf("ForceALBName and ALBNamePrefix are mutually exclusive")
+			return fmt.Errorf("ForceALBName[" + cfg.ForceALBName + "] and ALBNamePrefix [" + cfg.ALBNamePrefix + "] are mutually exclusive")
+		}
+	}else {
+		if len(cfg.ALBNamePrefix) == 0 {
+			cfg.ALBNamePrefix = generateALBNamePrefix(cfg.ClusterName)
 		}
 	}
 
