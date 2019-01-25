@@ -136,6 +136,7 @@ func (cfg *Configuration) Validate() error {
 		if len(cfg.ALBNamePrefix) > 0 {
 			return fmt.Errorf("ForceALBName[" + cfg.ForceALBName + "] and ALBNamePrefix [" + cfg.ALBNamePrefix + "] are mutually exclusive")
 		}
+		glog.Warningf("Using only one ALB with name [" + cfg.ForceALBName +"]. Check the documenation to understand the consequences.")
 	}else {
 		if len(cfg.ALBNamePrefix) == 0 {
 			cfg.ALBNamePrefix = generateALBNamePrefix(cfg.ClusterName)
