@@ -137,12 +137,18 @@ func (cfg *Configuration) Validate() error {
 			return fmt.Errorf("ForceALBName[" + cfg.ForceALBName + "] and ALBNamePrefix [" + cfg.ALBNamePrefix + "] are mutually exclusive")
 		}
 		glog.Warningf("Using only one ALB with name [" + cfg.ForceALBName +"]. Check the documenation to understand the consequences.")
+		the_length := len(cfg.ForceALBName)
+		if the_length > 11 {
+			the_length = 11
+		}
+		cfg.ALBNamePrefix = cfg.ForceALBName[0:the_length]
+
 	}else {
 		if len(cfg.ALBNamePrefix) == 0 {
 			cfg.ALBNamePrefix = generateALBNamePrefix(cfg.ClusterName)
 		}
 	}
-
+	glog.Warningf("ALBNamePrefix = [" + cfg.ALBNamePrefix +"].")
 	// TODO: I know, bad smell here:D
 	parser.AnnotationsPrefix = cfg.AnnotationPrefix
 	return nil
