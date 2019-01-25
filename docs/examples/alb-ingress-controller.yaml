@@ -38,6 +38,18 @@ spec:
             # clusters.
             # - --cluster-name=devCluster
 
+
+            # If you use this option, then the behavour of the alb-ingress-controller changes.
+            # Intead of launching one ALB per ingress controller, it will only launch/use
+            # the ALB below.
+            # That means all resources managed by this service will share the same ALB.
+            # There are two small caveats:
+            # Since an AWS ALB supports only 50 rules, bad things will happend if more rules are necessary.
+            # Also, in this mode it won't ever delete any rules, only create or modify the ones it needs.
+            # That means you can manually add other rules to the load balancer without any issues
+            # but on the other hand you will have to delete rules manually if you delete any kubernetes app
+            # - --force-alb-name=devCluster
+
             # AWS VPC ID this ingress controller will use to create AWS resources.
             # If unspecified, it will be discovered from ec2metadata.
             # - --aws-vpc-id=vpc-xxxxxx

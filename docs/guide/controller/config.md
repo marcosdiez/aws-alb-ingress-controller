@@ -38,7 +38,7 @@ spec:
 ```
 
 ### Limiting Namespaces
-Setting the `--watch-namespace` argument constrains the controller's scope to a single namespace. Ingress events outside of the namespace specified are not be seen by the controller. 
+Setting the `--watch-namespace` argument constrains the controller's scope to a single namespace. Ingress events outside of the namespace specified are not be seen by the controller.
 
 An example of the container spec, for a controller watching only the `default` namespace, is as follows.
 
@@ -69,7 +69,7 @@ This ConfigMap is kept in `default` if unspecified, and can be overridden via th
 
 ## Resource Tags
 
-Setting the `--default-tags` argument adds arbitrary tags to ALBs and target groups managed by the ingress controller.
+Setting the `--default-tags` command line argument adds arbitrary tags to ALBs and target groups managed by the ingress controller.
 
 ```yaml
 spec:
@@ -77,7 +77,7 @@ spec:
   - args:
     - /server
     - --default-tags=mykey=myvalue,otherkey=othervalue
-```    
+```
 
 ## Subnet Auto Discovery
 You can tag AWS subnets to allow ingress controller auto discover subnets used for ALBs.
@@ -90,3 +90,31 @@ You can tag AWS subnets to allow ingress controller auto discover subnets used f
 
 An example of a subnet with the correct tags for the cluster `joshcalico` is as follows:
 ![subnet-tags](../../imgs/subnet-tags.png)
+
+## Using only one Load Balancer
+
+There is an experimental way to use only one ALB for the whole kubernetes cluster.
+This ALB can every already exist and have other rules not managed by `aws-alb-ingress-controller`.
+In order to do so, use the `--force-alb-name` command line argument.
+
+Here is how a part of `alb-ingress-controller.yaml` should look like:
+
+```yaml
+spec:
+  containers:
+  - args:
+    - /server
+    - --force-alb-name=k8salb
+```
+
+There are some caveats in using this:
+
+- It is still experimental
+- Since only 50 rules are allowed per ALB, bad this will happen if you need more rules
+- It currently only *adds*  and *modifies* rules, but do not delete any. This causes two consequences:
+  - One can manually add rules to the load balancer and it will not mind.
+  - Deleted k8s resources will leave dangling rules, that should be manually deleted.
+
+The fact that dangling rules must be manually deleted is a known issue that will be addressed in the future.
+
+
