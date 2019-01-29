@@ -44,10 +44,10 @@ func (gen *NameGenerator) NameLB(namespace string, ingressName string) string {
 
 func (gen *NameGenerator) NameTG(namespace string, ingressName string, serviceName, servicePort string,
 	targetType string, protocol string) string {
-	LBName := gen.NameLB(namespace, ingressName)
 
 	hasher := md5.New()
-	_, _ = hasher.Write([]byte(LBName))
+	_, _ = hasher.Write([]byte(namespace))
+	_, _ = hasher.Write([]byte(ingressName))
 	_, _ = hasher.Write([]byte(serviceName))
 	_, _ = hasher.Write([]byte(servicePort))
 	_, _ = hasher.Write([]byte(protocol))
