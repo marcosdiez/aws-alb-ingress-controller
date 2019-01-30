@@ -13,7 +13,7 @@ type NameGenerator interface {
 
 // TagGenerator generates tags for loadBalancer resources
 type TagGenerator interface {
-	TagLB(namespace string, ingressName string) map[string]string
+	TagLB(namespace string, ingressName string, usingOnlyOneAlb bool) map[string]string
 }
 
 // NameTagGenerator combines NameGenerator & TagGenerator

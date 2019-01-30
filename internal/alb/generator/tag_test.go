@@ -19,7 +19,13 @@ func Test_TagIngress(t *testing.T) {
 		TagKeyNamespace:                 "namespace",
 		"key":                           "value",
 	}
-	assert.Equal(t, gen.TagLB("namespace", "ingress"), expected)
+
+	expected_single_load_balancer := map[string]string{
+		"kubernetes.io/cluster/cluster": "owned",
+		"key":                           "value",
+	}
+	assert.Equal(t, gen.TagLB("namespace", "ingress", false), expected)
+	assert.Equal(t, gen.TagLB("namespace", "ingress", true), expected_single_load_balancer)
 	assert.Equal(t, gen.TagTGGroup("namespace", "ingress"), expected)
 }
 

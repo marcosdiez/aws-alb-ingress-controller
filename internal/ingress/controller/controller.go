@@ -68,7 +68,7 @@ func newReconciler(config *config.Configuration, mgr manager.Manager, mc metric.
 
 	sgAssociationController := sg.NewAssociationController(store, cloud, tagsController, nameTagGenerator)
 	lbController := lb.NewController(cloud, store,
-		nameTagGenerator, tgGroupController, lsGroupController, sgAssociationController, tagsController)
+		nameTagGenerator, tgGroupController, lsGroupController, sgAssociationController, tagsController, usingOnlyOneAlb)
 
 	return &Reconciler{
 		client:          mgr.GetClient(),

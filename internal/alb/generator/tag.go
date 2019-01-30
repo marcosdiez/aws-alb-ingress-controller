@@ -24,8 +24,17 @@ type TagGenerator struct {
 	DefaultTags map[string]string
 }
 
-func (gen *TagGenerator) TagLB(namespace string, ingressName string) map[string]string {
-	return gen.tagIngressResources(namespace, ingressName)
+func (gen *TagGenerator) TagLB(namespace string, ingressName string, usingOnlyOneAlb bool) map[string]string {
+	if usingOnlyOneAlb {
+		m := make(map[string]string)
+		for label, value := range gen.DefaultTags {
+			m[label] = value
+		}
+		m["kubernetes.io/cluster/"+gen.ClusterName] = "owned"
+		return m
+	}else{
+		return gen.tagIngressResources(namespace, ingressName)
+	}
 }
 
 func (gen *TagGenerator) TagTGGroup(namespace string, ingressName string) map[string]string {
@@ -39,12 +48,12 @@ func (gen *TagGenerator) TagTG(serviceName string, servicePort string) map[strin
 	}
 }
 
-func (gen *TagGenerator) TagLBSG(namespace string, ingressName string) map[string]string {
-	return gen.tagSGs(namespace, ingressName)
+func (gen *TagGenerator) TagLBSG(namespace string, ingressName string, usingOnlyOneAlb bool) map[string]string {
+	return gen.tagSGs(namespace, ingressName, usingOnlyOneAlb)
 }
 
-func (gen *TagGenerator) TagInstanceSG(namespace string, ingressName string) map[string]string {
-	return gen.tagSGs(namespace, ingressName)
+func (gen *TagGenerator) TagInstanceSG(namespace string, ingressName string, usingOnlyOneAlb bool) map[string]string {
+	return gen.tagSGs(namespace, ingressName, usingOnlyOneAlb)
 }
 
 func (gen *TagGenerator) tagIngressResources(namespace string, ingressName string) map[string]string {
@@ -62,7 +71,7 @@ func (gen *TagGenerator) tagIngressResources(namespace string, ingressName strin
 // * add support to clean up aws resources created by ingress controller
 // * add support for sharing instance securityGroup among ingresses.
 
-func (gen *TagGenerator) tagSGs(namespace string, ingressName string) map[string]string {
+func (gen *TagGenerator) tagSGs(namespace string, ingressName string, usingOnlyOneAlb bool) map[string]string {
 	m := make(map[string]string)
 	for label, value := range gen.DefaultTags {
 		m[label] = value
@@ -73,8 +82,9 @@ func (gen *TagGenerator) tagSGs(namespace string, ingressName string) map[string
 	// A more sensible approach in the future should be change the out-of-tree cloud-provider-aws for more advanced SG discovery mechanism.
 	// we can do it when out-of-tree cloud-provider-aws is stable.
 	m[TagKeyClusterName] = gen.ClusterName
-
-	m[TagKeyNamespace] = namespace
-	m[TagKeyIngressName] = ingressName
+	if !usingOnlyOneAlb {
+		m[TagKeyNamespace] = namespace
+		m[TagKeyIngressName] = ingressName
+	}
 	return m
 }

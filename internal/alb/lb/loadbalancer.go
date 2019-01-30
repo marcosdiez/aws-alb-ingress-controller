@@ -43,7 +43,9 @@ func NewController(
 	tgGroupController tg.GroupController,
 	lsGroupController ls.GroupController,
 	sgAssociationController sg.AssociationController,
-	tagsController tags.Controller) Controller {
+	tagsController tags.Controller,
+	usingOnlyOneAlb bool,
+	) Controller {
 	attrsController := NewAttributesController(cloud)
 
 	return &defaultController{
@@ -55,6 +57,7 @@ func NewController(
 		sgAssociationController: sgAssociationController,
 		tagsController:          tagsController,
 		attrsController:         attrsController,
+		usingOnlyOneAlb:         usingOnlyOneAlb,
 	}
 }
 
@@ -78,6 +81,7 @@ type defaultController struct {
 	sgAssociationController sg.AssociationController
 	tagsController          tags.Controller
 	attrsController         AttributesController
+	usingOnlyOneAlb         bool
 }
 
 var _ Controller = (*defaultController)(nil)
@@ -297,7 +301,8 @@ func (controller *defaultController) isLBInstanceNeedRecreation(ctx context.Cont
 }
 
 func (controller *defaultController) buildLBConfig(ctx context.Context, ingress *extensions.Ingress, ingressAnnos *annotations.Ingress) (*loadBalancerConfig, error) {
-	lbTags := controller.nameTagGen.TagLB(ingress.Namespace, ingress.Name)
+	loadBalancerName := controller.nameTagGen.NameLB(ingress.Namespace, ingress.Name)
+	lbTags := controller.nameTagGen.TagLB(ingress.Namespace, ingress.Name, controller.usingOnlyOneAlb)
 	for k, v := range ingressAnnos.Tags.LoadBalancer {
 		lbTags[k] = v
 	}
@@ -306,7 +311,7 @@ func (controller *defaultController) buildLBConfig(ctx context.Context, ingress 
 		return nil, err
 	}
 	return &loadBalancerConfig{
-		Name: controller.nameTagGen.NameLB(ingress.Namespace, ingress.Name),
+		Name: loadBalancerName,
 		Tags: lbTags,
 
 		Type:          aws.String(elbv2.LoadBalancerTypeEnumApplication),
