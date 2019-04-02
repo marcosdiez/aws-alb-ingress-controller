@@ -18,10 +18,10 @@ type NameGenerator interface {
 // TagGenerator provides tag generation functionality for sg package.
 type TagGenerator interface {
 	// TagLBSG generates tags for managed securityGroup that will be attached to LoadBalancer.
-	TagLBSG(namespace string, ingressName string) map[string]string
+	TagLBSG(namespace string, ingressName string, usingOnlyOneAlb bool) map[string]string
 
 	// TagInstanceSG generates tags for managed securityGroup that will be attached to EC2 instances.
-	TagInstanceSG(namespace string, ingressName string) map[string]string
+	TagInstanceSG(namespace string, ingressName string, usingOnlyOneAlb bool) map[string]string
 }
 
 // NameTagGenerator is combination of NameGenerator and TagGenerator

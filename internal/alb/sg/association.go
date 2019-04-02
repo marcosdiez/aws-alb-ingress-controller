@@ -131,7 +131,7 @@ func (c *associationController) reconcileLbSG(ctx context.Context, ingressKey ty
 	if err != nil {
 		return "", fmt.Errorf("failed to reconcile managed LoadBalancer securityGroup due to %v", err)
 	}
-	sgTags := c.nameTagGen.TagLBSG(ingressKey.Namespace, ingressKey.Name)
+	sgTags := c.nameTagGen.TagLBSG(ingressKey.Namespace, ingressKey.Name, false)
 	for k, v := range cfg.AdditionalTags {
 		sgTags[k] = v
 	}
@@ -176,7 +176,7 @@ func (c *associationController) reconcileInstanceSG(ctx context.Context, ingress
 	if err != nil {
 		return "", fmt.Errorf("failed to reconcile managed instance securityGroup due to %v", err)
 	}
-	sgTags := c.nameTagGen.TagInstanceSG(ingressKey.Namespace, ingressKey.Name)
+	sgTags := c.nameTagGen.TagInstanceSG(ingressKey.Namespace, ingressKey.Name, false)
 	for k, v := range cfg.AdditionalTags {
 		sgTags[k] = v
 	}
