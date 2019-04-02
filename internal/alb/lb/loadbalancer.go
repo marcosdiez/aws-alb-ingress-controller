@@ -125,7 +125,7 @@ func (controller *defaultController) Reconcile(ctx context.Context, ingress *ext
 		return nil, fmt.Errorf("failed to GC targetGroups due to %v", err)
 	}
 
-	if err := controller.sgAssociationController.Reconcile(ctx, ingress, instance, tgGroup); err != nil {
+	if err := controller.sgAssociationController.Reconcile(ctx, ingress, instance, tgGroup, controller.usingOnlyOneAlb); err != nil {
 		return nil, fmt.Errorf("failed to reconcile securityGroup associations due to %v", err)
 	}
 	return &LoadBalancer{
