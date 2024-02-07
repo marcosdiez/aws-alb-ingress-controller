@@ -2,13 +2,14 @@ package targetgroupbinding
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	elbv2sdk "github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/cache"
 	"sigs.k8s.io/aws-load-balancer-controller/pkg/aws/services"
-	"sync"
-	"time"
 )
 
 const (
@@ -30,14 +31,17 @@ type TargetsManager interface {
 }
 
 // NewCachedTargetsManager constructs new cachedTargetsManager
-func NewCachedTargetsManager(elbv2Client services.ELBV2, logger logr.Logger) *cachedTargetsManager {
+func NewCachedTargetsManager(
+	elbv2Client services.ELBV2, logger logr.Logger,
+	targetGroupBindingRoleToImpersonate string) *cachedTargetsManager {
 	return &cachedTargetsManager{
-		elbv2Client:                elbv2Client,
-		targetsCache:               cache.NewExpiring(),
-		targetsCacheTTL:            defaultTargetsCacheTTL,
-		registerTargetsChunkSize:   defaultRegisterTargetsChunkSize,
-		deregisterTargetsChunkSize: defaultDeregisterTargetsChunkSize,
-		logger:                     logger,
+		elbv2Client:                         elbv2Client,
+		targetsCache:                        cache.NewExpiring(),
+		targetsCacheTTL:                     defaultTargetsCacheTTL,
+		registerTargetsChunkSize:            defaultRegisterTargetsChunkSize,
+		deregisterTargetsChunkSize:          defaultDeregisterTargetsChunkSize,
+		targetGroupBindingRoleToImpersonate: targetGroupBindingRoleToImpersonate,
+		logger:                              logger,
 	}
 }
 
@@ -63,6 +67,9 @@ type cachedTargetsManager struct {
 	registerTargetsChunkSize int
 	// chunk size for deregisterTargets API call.
 	deregisterTargetsChunkSize int
+
+	// In case your ALB is in a different AWS account, impersonate this role before Registering and DeRegistering IPs in it
+	targetGroupBindingRoleToImpersonate string
 
 	logger logr.Logger
 }

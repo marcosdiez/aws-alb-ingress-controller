@@ -40,8 +40,8 @@ func NewDefaultResourceManager(k8sClient client.Client, elbv2Client services.ELB
 	vpcInfoProvider networking.VPCInfoProvider,
 	vpcID string, clusterName string, failOpenEnabled bool, endpointSliceEnabled bool, disabledRestrictedSGRulesFlag bool,
 	endpointSGTags map[string]string,
-	eventRecorder record.EventRecorder, logger logr.Logger) *defaultResourceManager {
-	targetsManager := NewCachedTargetsManager(elbv2Client, logger)
+	eventRecorder record.EventRecorder, logger logr.Logger, targetGroupBindingRoleToImpersonate string) *defaultResourceManager {
+	targetsManager := NewCachedTargetsManager(elbv2Client, logger, targetGroupBindingRoleToImpersonate)
 	endpointResolver := backend.NewDefaultEndpointResolver(k8sClient, podInfoRepo, failOpenEnabled, endpointSliceEnabled, logger)
 
 	nodeInfoProvider := networking.NewDefaultNodeInfoProvider(ec2Client, logger)
