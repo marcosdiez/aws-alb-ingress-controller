@@ -22,6 +22,7 @@ const (
 	flagServiceMaxConcurrentReconciles               = "service-max-concurrent-reconciles"
 	flagTargetGroupBindingMaxConcurrentReconciles    = "targetgroupbinding-max-concurrent-reconciles"
 	flagTargetGroupBindingMaxExponentialBackoffDelay = "targetgroupbinding-max-exponential-backoff-delay"
+	flagTargetGroupBindingRoleToImpersonate          = "targetgroupbinding-role-to-impersonate"
 	flagDefaultSSLPolicy                             = "default-ssl-policy"
 	flagEnableBackendSG                              = "enable-backend-security-group"
 	flagBackendSecurityGroup                         = "backend-security-group"
@@ -91,6 +92,8 @@ type ControllerConfig struct {
 	TargetGroupBindingMaxConcurrentReconciles int
 	// Max exponential backoff delay for reconcile failures of TargetGroupBinding
 	TargetGroupBindingMaxExponentialBackoffDelay time.Duration
+	// In case your ALB is in a different AWS account, impersonate this role before Registering and DeRegistering IPs in it
+	TargetGroupBindingRoleToImpersonate string
 
 	// EnableBackendSecurityGroup specifies whether to use optimized security group rules
 	EnableBackendSecurityGroup bool
@@ -122,6 +125,8 @@ func (cfg *ControllerConfig) BindFlags(fs *pflag.FlagSet) {
 		"Maximum number of concurrently running reconcile loops for targetGroupBinding")
 	fs.DurationVar(&cfg.TargetGroupBindingMaxExponentialBackoffDelay, flagTargetGroupBindingMaxExponentialBackoffDelay, defaultMaxExponentialBackoffDelay,
 		"Maximum duration of exponential backoff for targetGroupBinding reconcile failures")
+	fs.StringVar(&cfg.TargetGroupBindingRoleToImpersonate, flagTargetGroupBindingRoleToImpersonate, "",
+		"In case your ALB is in a different AWS account, impersonate this role before Registering and DeRegistering IPs in it")
 	fs.StringVar(&cfg.DefaultSSLPolicy, flagDefaultSSLPolicy, defaultSSLPolicy,
 		"Default SSL policy for load balancers listeners")
 	fs.BoolVar(&cfg.EnableBackendSecurityGroup, flagEnableBackendSG, defaultEnableBackendSG,
