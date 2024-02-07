@@ -8,15 +8,16 @@ import (
 )
 
 const (
-	flagAWSRegion        = "aws-region"
-	flagAWSAPIEndpoints  = "aws-api-endpoints"
-	flagAWSAPIThrottle   = "aws-api-throttle"
-	flagAWSVpcID         = "aws-vpc-id"
-	flagAWSVpcCacheTTL   = "aws-vpc-cache-ttl"
-	flagAWSMaxRetries    = "aws-max-retries"
-	defaultVpcID         = ""
-	defaultRegion        = ""
-	defaultAPIMaxRetries = 10
+	flagAWSRegion              = "aws-region"
+	flagAWSAPIEndpoints        = "aws-api-endpoints"
+	flagAWSAPIThrottle         = "aws-api-throttle"
+	flagAWSVpcID               = "aws-vpc-id"
+	flagAWSVpcCacheTTL         = "aws-vpc-cache-ttl"
+	flagAWSMaxRetries          = "aws-max-retries"
+	flagElbV2RoleToImpersonate = "aws-elbv2-role-to-impersonate"
+	defaultVpcID               = ""
+	defaultRegion              = ""
+	defaultAPIMaxRetries       = 10
 )
 
 type CloudConfig struct {
@@ -37,6 +38,8 @@ type CloudConfig struct {
 
 	// AWS endpoints configuration
 	AWSEndpoints map[string]string
+
+	ElbV2RoleToImpersonate string
 }
 
 func (cfg *CloudConfig) BindFlags(fs *pflag.FlagSet) {
@@ -45,4 +48,5 @@ func (cfg *CloudConfig) BindFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&cfg.VpcID, flagAWSVpcID, defaultVpcID, "AWS VpcID for the LoadBalancer resources")
 	fs.IntVar(&cfg.MaxRetries, flagAWSMaxRetries, defaultAPIMaxRetries, "Maximum retries for AWS APIs")
 	fs.StringToStringVar(&cfg.AWSEndpoints, flagAWSAPIEndpoints, nil, "Custom AWS endpoint configuration, format: serviceID1=URL1,serviceID2=URL2")
+	fs.StringVar(&cfg.ElbV2RoleToImpersonate, flagElbV2RoleToImpersonate, "", "In case your LB is in a different AWS account, impersonate this role to interract with it")
 }
