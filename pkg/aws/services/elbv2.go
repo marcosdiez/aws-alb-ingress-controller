@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -25,6 +27,13 @@ type ELBV2 interface {
 
 	// wrapper to DescribeRulesWithContext API, which aggregates paged results into list.
 	DescribeRulesAsList(ctx context.Context, input *elbv2.DescribeRulesInput) ([]*elbv2.Rule, error)
+}
+
+// NewELBV2 constructs new ELBV2 implementation.
+func NewELBV2WithConfig(session *session.Session, awsconfig *aws.Config) ELBV2 {
+	return &defaultELBV2{
+		ELBV2API: elbv2.New(session, awsconfig),
+	}
 }
 
 // NewELBV2 constructs new ELBV2 implementation.

@@ -7,9 +7,11 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	amerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -49,7 +51,7 @@ type Cloud interface {
 }
 
 // NewCloud constructs new Cloud implementation.
-func NewCloud(cfg CloudConfig, metricsRegisterer prometheus.Registerer) (Cloud, error) {
+func NewCloud(cfg CloudConfig, metricsRegisterer prometheus.Registerer, logger logr.Logger) (Cloud, error) {
 	hasIPv4 := true
 	addrs, err := net.InterfaceAddrs()
 	if err == nil {
@@ -120,10 +122,19 @@ func NewCloud(cfg CloudConfig, metricsRegisterer prometheus.Registerer) (Cloud, 
 		cfg.VpcID = vpcID
 	}
 
+	var elbv2Service services.ELBV2
+	if cfg.ElbV2RoleToImpersonate == "" {
+		elbv2Service = services.NewELBV2(sess)
+	} else {
+		logger.Info(fmt.Sprintf("Using custom IAM Role to access the AWS ELBV2 API: %s", cfg.ElbV2RoleToImpersonate))
+		creds := stscreds.NewCredentials(sess, cfg.ElbV2RoleToImpersonate)
+		elbv2Service = services.NewELBV2WithConfig(sess, &aws.Config{Credentials: creds})
+	}
+
 	return &defaultCloud{
 		cfg:         cfg,
 		ec2:         ec2Service,
-		elbv2:       services.NewELBV2(sess),
+		elbv2:       elbv2Service,
 		acm:         services.NewACM(sess),
 		wafv2:       services.NewWAFv2(sess),
 		wafRegional: services.NewWAFRegional(sess, cfg.Region),
