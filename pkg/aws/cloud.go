@@ -129,6 +129,7 @@ func NewCloud(cfg CloudConfig, metricsRegisterer prometheus.Registerer) (Cloud, 
 		wafRegional: services.NewWAFRegional(sess, cfg.Region),
 		shield:      services.NewShield(sess),
 		rgt:         services.NewRGT(sess),
+		sts:         services.NewSTS(sess),
 	}, nil
 }
 
@@ -181,6 +182,7 @@ type defaultCloud struct {
 	wafRegional services.WAFRegional
 	shield      services.Shield
 	rgt         services.RGT
+	sts         services.STS
 }
 
 func (c *defaultCloud) EC2() services.EC2 {
@@ -210,6 +212,14 @@ func (c *defaultCloud) Shield() services.Shield {
 func (c *defaultCloud) RGT() services.RGT {
 	return c.rgt
 }
+
+func (c *defaultCloud) STS() services.STS {
+	return c.sts
+}
+
+// func (c *defaultCloud) GetCallerIdentity() string {
+// 	return c.sts.GetCallerIdentity()
+// }
 
 func (c *defaultCloud) Region() string {
 	return c.cfg.Region
