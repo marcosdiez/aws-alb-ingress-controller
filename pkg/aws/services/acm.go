@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/acm/acmiface"
@@ -15,9 +16,9 @@ type ACM interface {
 }
 
 // NewACM constructs new ACM implementation.
-func NewACM(session *session.Session) *defaultACM {
+func NewACM(session *session.Session, cfgs ...*aws.Config) *defaultACM {
 	return &defaultACM{
-		ACMAPI: acm.New(session),
+		ACMAPI: acm.New(session, cfgs...),
 	}
 }
 

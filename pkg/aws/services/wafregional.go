@@ -15,9 +15,16 @@ type WAFRegional interface {
 }
 
 // NewWAFRegional constructs new WAFRegional implementation.
-func NewWAFRegional(session *session.Session, region string) WAFRegional {
+func NewWAFRegional(session *session.Session, region string, cfgs ...*aws.Config) WAFRegional {
+	this_config := aws.NewConfig()
+	if len(cfgs) > 0 {
+		this_config = cfgs[0]
+	}
+	this_config.WithRegion(region)
+
 	return &defaultWAFRegional{
-		WAFRegionalAPI: wafregional.New(session, aws.NewConfig().WithRegion(region)),
+
+		WAFRegionalAPI: wafregional.New(session, this_config),
 		region:         region,
 	}
 }

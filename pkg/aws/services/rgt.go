@@ -20,9 +20,9 @@ type RGT interface {
 }
 
 // NewRGT constructs new RGT implementation.
-func NewRGT(session *session.Session) RGT {
+func NewRGT(session *session.Session, cfgs ...*aws.Config) RGT {
 	return &defaultRGT{
-		ResourceGroupsTaggingAPIAPI: resourcegroupstaggingapi.New(session),
+		ResourceGroupsTaggingAPIAPI: resourcegroupstaggingapi.New(session, cfgs...),
 	}
 }
 

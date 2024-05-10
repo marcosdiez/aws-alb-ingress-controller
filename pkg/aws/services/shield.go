@@ -12,10 +12,16 @@ type Shield interface {
 }
 
 // NewShield constructs new Shield implementation.
-func NewShield(session *session.Session) Shield {
+func NewShield(session *session.Session, cfgs ...*aws.Config) Shield {
+	this_config := aws.NewConfig()
+	if len(cfgs) > 0 {
+		this_config = cfgs[0]
+	}
+	// shield is only available as a global API in us-east-1.
+	this_config.WithRegion("us-east-1")
+
 	return &defaultShield{
-		// shield is only available as a global API in us-east-1.
-		ShieldAPI: shield.New(session, aws.NewConfig().WithRegion("us-east-1")),
+		ShieldAPI: shield.New(session, this_config),
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -50,6 +51,64 @@ type Cloud interface {
 
 // NewCloud constructs new Cloud implementation.
 func NewCloud(cfg CloudConfig, metricsRegisterer prometheus.Registerer) (Cloud, error) {
+	sess, metadata, error := newCloudSession(&cfg, metricsRegisterer)
+	if error != nil {
+		return nil, error
+	}
+
+	ec2Service := services.NewEC2(sess)
+
+	if len(cfg.VpcID) == 0 {
+		vpcID, err := inferVPCID(metadata, ec2Service)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to introspect vpcID from EC2Metadata or Node name, specify --aws-vpc-id instead if EC2Metadata is unavailable")
+		}
+		cfg.VpcID = vpcID
+	}
+
+	return &defaultCloud{
+		cfg:         cfg,
+		ec2:         ec2Service,
+		elbv2:       services.NewELBV2(sess),
+		acm:         services.NewACM(sess),
+		wafv2:       services.NewWAFv2(sess),
+		wafRegional: services.NewWAFRegional(sess, cfg.Region),
+		shield:      services.NewShield(sess),
+		rgt:         services.NewRGT(sess),
+		sts:         services.NewSTS(sess),
+	}, nil
+}
+
+// NewCloud constructs new Cloud implementation.
+func NewCloudAssumeRole(cfg CloudConfig, metricsRegisterer prometheus.Registerer, roleArnToAssume string, externalID string) (Cloud, error) {
+	if len(cfg.VpcID) == 0 {
+		return nil, errors.New("the VPC ID should already be set by NewCloud()")
+	}
+
+	sess, _, error := newCloudSession(&cfg, metricsRegisterer)
+	if error != nil {
+		return nil, error
+	}
+
+	creds := stscreds.NewCredentials(sess, roleArnToAssume, func(p *stscreds.AssumeRoleProvider) {
+		p.ExternalID = &externalID // this should work if externalid is "" as well
+	})
+
+	return &defaultCloud{
+		cfg:         cfg,
+		ec2:         services.NewEC2(sess, &aws.Config{Credentials: creds}),
+		elbv2:       services.NewELBV2(sess, &aws.Config{Credentials: creds}),
+		acm:         services.NewACM(sess, &aws.Config{Credentials: creds}),
+		wafv2:       services.NewWAFv2(sess, &aws.Config{Credentials: creds}),
+		wafRegional: services.NewWAFRegional(sess, cfg.Region, &aws.Config{Credentials: creds}),
+		shield:      services.NewShield(sess, &aws.Config{Credentials: creds}),
+		rgt:         services.NewRGT(sess, &aws.Config{Credentials: creds}),
+		sts:         services.NewSTS(sess, &aws.Config{Credentials: creds}),
+	}, nil
+}
+
+// NewCloud constructs new Cloud implementation.
+func newCloudSession(cfg *CloudConfig, metricsRegisterer prometheus.Registerer) (*session.Session, services.EC2Metadata, error) {
 	hasIPv4 := true
 	addrs, err := net.InterfaceAddrs()
 	if err == nil {
@@ -84,7 +143,7 @@ func NewCloud(cfg CloudConfig, metricsRegisterer prometheus.Registerer) (Cloud, 
 			err := (error)(nil)
 			region, err = metadata.Region()
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to introspect region from EC2Metadata, specify --aws-region instead if EC2Metadata is unavailable")
+				return nil, nil, errors.Wrap(err, "failed to introspect region from EC2Metadata, specify --aws-region instead if EC2Metadata is unavailable")
 			}
 		}
 		cfg.Region = region
@@ -105,32 +164,11 @@ func NewCloud(cfg CloudConfig, metricsRegisterer prometheus.Registerer) (Cloud, 
 	if metricsRegisterer != nil {
 		metricsCollector, err := metrics.NewCollector(metricsRegisterer)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to initialize sdk metrics collector")
+			return nil, nil, errors.Wrapf(err, "failed to initialize sdk metrics collector")
 		}
 		metricsCollector.InjectHandlers(&sess.Handlers)
 	}
-
-	ec2Service := services.NewEC2(sess)
-
-	if len(cfg.VpcID) == 0 {
-		vpcID, err := inferVPCID(metadata, ec2Service)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to introspect vpcID from EC2Metadata or Node name, specify --aws-vpc-id instead if EC2Metadata is unavailable")
-		}
-		cfg.VpcID = vpcID
-	}
-
-	return &defaultCloud{
-		cfg:         cfg,
-		ec2:         ec2Service,
-		elbv2:       services.NewELBV2(sess),
-		acm:         services.NewACM(sess),
-		wafv2:       services.NewWAFv2(sess),
-		wafRegional: services.NewWAFRegional(sess, cfg.Region),
-		shield:      services.NewShield(sess),
-		rgt:         services.NewRGT(sess),
-		sts:         services.NewSTS(sess),
-	}, nil
+	return sess, metadata, nil
 }
 
 func inferVPCID(metadata services.EC2Metadata, ec2Service services.EC2) (string, error) {

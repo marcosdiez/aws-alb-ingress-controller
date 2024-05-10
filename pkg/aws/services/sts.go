@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
@@ -15,7 +16,7 @@ type STS interface {
 }
 
 // NewSTS constructs new STS implementation.
-func NewSTS(session *session.Session) *defaultSTS {
+func NewSTS(session *session.Session, cfgs ...*aws.Config) *defaultSTS {
 	return &defaultSTS{
 		STSAPI: sts.New(session),
 	}

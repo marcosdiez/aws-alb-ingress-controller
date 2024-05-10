@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -24,9 +25,9 @@ type EC2 interface {
 }
 
 // NewEC2 constructs new EC2 implementation.
-func NewEC2(session *session.Session) EC2 {
+func NewEC2(session *session.Session, cfgs ...*aws.Config) EC2 {
 	return &defaultEC2{
-		EC2API: ec2.New(session),
+		EC2API: ec2.New(session, cfgs...),
 	}
 }
 

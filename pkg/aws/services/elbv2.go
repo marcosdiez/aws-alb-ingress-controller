@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -28,9 +29,9 @@ type ELBV2 interface {
 }
 
 // NewELBV2 constructs new ELBV2 implementation.
-func NewELBV2(session *session.Session) ELBV2 {
+func NewELBV2(session *session.Session, cfgs ...*aws.Config) ELBV2 {
 	return &defaultELBV2{
-		ELBV2API: elbv2.New(session),
+		ELBV2API: elbv2.New(session, cfgs...),
 	}
 }
 
