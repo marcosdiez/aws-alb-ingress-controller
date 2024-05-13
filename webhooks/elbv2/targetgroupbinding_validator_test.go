@@ -282,6 +282,7 @@ func Test_targetGroupBindingValidator_ValidateCreate(t *testing.T) {
 			elbv2Client := services.NewMockELBV2(ctrl)
 			for _, call := range tt.fields.describeTargetGroupsAsListCalls {
 				elbv2Client.EXPECT().DescribeTargetGroupsAsList(gomock.Any(), call.req).Return(call.resp, call.err)
+				elbv2Client.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(elbv2Client).AnyTimes()
 			}
 			v := &targetGroupBindingValidator{
 				k8sClient:   k8sClient,
@@ -1160,6 +1161,7 @@ func Test_targetGroupBindingValidator_checkTargetGroupVpcID(t *testing.T) {
 			elbv2Client := services.NewMockELBV2(ctrl)
 			for _, call := range tt.fields.describeTargetGroupsAsListCalls {
 				elbv2Client.EXPECT().DescribeTargetGroupsAsList(gomock.Any(), call.req).Return(call.resp, call.err)
+				elbv2Client.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(elbv2Client).AnyTimes()
 			}
 			v := &targetGroupBindingValidator{
 				k8sClient:   k8sClient,

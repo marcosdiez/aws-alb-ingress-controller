@@ -2,17 +2,31 @@ package targetgroupbinding
 
 import (
 	"context"
+	"sync"
+	"testing"
+	"time"
+
 	awssdk "github.com/aws/aws-sdk-go/aws"
 	elbv2sdk "github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/cache"
+	elbv2api "sigs.k8s.io/aws-load-balancer-controller/apis/elbv2/v1beta1"
 	"sigs.k8s.io/aws-load-balancer-controller/pkg/aws/services"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sync"
-	"testing"
-	"time"
 )
+
+func makeTargetGroupBinding(tgARN string) *elbv2api.TargetGroupBinding {
+	return &elbv2api.TargetGroupBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{},
+		},
+		Spec: elbv2api.TargetGroupBindingSpec{
+			TargetGroupARN: tgARN,
+		},
+	}
+}
 
 func Test_cachedTargetsManager_RegisterTargets(t *testing.T) {
 	type registerTargetsWithContextCall struct {
@@ -263,6 +277,7 @@ func Test_cachedTargetsManager_RegisterTargets(t *testing.T) {
 			elbv2Client := services.NewMockELBV2(ctrl)
 			for _, call := range tt.fields.registerTargetsWithContextCalls {
 				elbv2Client.EXPECT().RegisterTargetsWithContext(gomock.Any(), call.req).Return(call.resp, call.err)
+				elbv2Client.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(elbv2Client)
 			}
 
 			targetsCache := cache.NewExpiring()
@@ -282,7 +297,7 @@ func Test_cachedTargetsManager_RegisterTargets(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			err := m.RegisterTargets(ctx, tt.args.tgARN, tt.args.targets)
+			err := m.RegisterTargets(ctx, makeTargetGroupBinding(tt.args.tgARN), tt.args.targets)
 			if tt.wantErr != nil {
 				assert.EqualError(t, err, tt.wantErr.Error())
 			} else {
@@ -508,6 +523,7 @@ func Test_cachedTargetsManager_DeregisterTargets(t *testing.T) {
 			elbv2Client := services.NewMockELBV2(ctrl)
 			for _, call := range tt.fields.deregisterTargetsWithContextCalls {
 				elbv2Client.EXPECT().DeregisterTargetsWithContext(gomock.Any(), call.req).Return(call.resp, call.err)
+				elbv2Client.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(elbv2Client)
 			}
 
 			targetsCache := cache.NewExpiring()
@@ -527,7 +543,7 @@ func Test_cachedTargetsManager_DeregisterTargets(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			err := m.DeregisterTargets(ctx, tt.args.tgARN, tt.args.targets)
+			err := m.DeregisterTargets(ctx, makeTargetGroupBinding(tt.args.tgARN), tt.args.targets)
 			if tt.wantErr != nil {
 				assert.EqualError(t, err, tt.wantErr.Error())
 			} else {
@@ -773,6 +789,7 @@ func Test_cachedTargetsManager_ListTargets(t *testing.T) {
 			elbv2Client := services.NewMockELBV2(ctrl)
 			for _, call := range tt.fields.describeTargetHealthWithContextCalls {
 				elbv2Client.EXPECT().DescribeTargetHealthWithContext(gomock.Any(), call.req).Return(call.resp, call.err)
+				elbv2Client.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(elbv2Client)
 			}
 			targetsCache := cache.NewExpiring()
 			targetsCacheTTL := 1 * time.Minute
@@ -790,7 +807,7 @@ func Test_cachedTargetsManager_ListTargets(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			got, err := m.ListTargets(ctx, tt.args.tgARN)
+			got, err := m.ListTargets(ctx, makeTargetGroupBinding(tt.args.tgARN))
 			if tt.wantErr != nil {
 				assert.EqualError(t, err, tt.wantErr.Error())
 			} else {
@@ -1183,12 +1200,13 @@ func Test_cachedTargetsManager_refreshUnhealthyTargets(t *testing.T) {
 			elbv2Client := services.NewMockELBV2(ctrl)
 			for _, call := range tt.fields.describeTargetHealthWithContextCalls {
 				elbv2Client.EXPECT().DescribeTargetHealthWithContext(gomock.Any(), call.req).Return(call.resp, call.err)
+				elbv2Client.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(elbv2Client)
 			}
 			m := &cachedTargetsManager{
 				elbv2Client: elbv2Client,
 			}
 			ctx := context.Background()
-			got, err := m.refreshUnhealthyTargets(ctx, tt.args.tgARN, tt.args.cachedTargets)
+			got, err := m.refreshUnhealthyTargets(ctx, makeTargetGroupBinding(tt.args.tgARN), tt.args.cachedTargets)
 			if tt.wantErr != nil {
 				assert.EqualError(t, err, tt.wantErr.Error())
 			} else {
@@ -1345,13 +1363,14 @@ func Test_cachedTargetsManager_listTargetsFromAWS(t *testing.T) {
 			elbv2Client := services.NewMockELBV2(ctrl)
 			for _, call := range tt.fields.describeTargetHealthWithContextCalls {
 				elbv2Client.EXPECT().DescribeTargetHealthWithContext(gomock.Any(), call.req).Return(call.resp, call.err)
+				elbv2Client.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(elbv2Client)
 			}
 
 			m := &cachedTargetsManager{
 				elbv2Client: elbv2Client,
 			}
 			ctx := context.Background()
-			got, err := m.listTargetsFromAWS(ctx, tt.args.tgARN, tt.args.targets)
+			got, err := m.listTargetsFromAWS(ctx, makeTargetGroupBinding(tt.args.tgARN), tt.args.targets)
 			if tt.wantErr != nil {
 				assert.EqualError(t, err, tt.wantErr.Error())
 			} else {

@@ -186,6 +186,20 @@ func (mr *MockELBV2MockRecorder) AddTrustStoreRevocationsWithContext(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTrustStoreRevocationsWithContext", reflect.TypeOf((*MockELBV2)(nil).AddTrustStoreRevocationsWithContext), varargs...)
 }
 
+// AssumeRole mocks base method.
+func (m *MockELBV2) AssumeRole(arg0, arg1 string) ELBV2 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssumeRole", arg0, arg1)
+	ret0, _ := ret[0].(ELBV2)
+	return ret0
+}
+
+// AssumeRole indicates an expected call of AssumeRole.
+func (mr *MockELBV2MockRecorder) AssumeRole(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssumeRole", reflect.TypeOf((*MockELBV2)(nil).AssumeRole), arg0, arg1)
+}
+
 // CreateListener mocks base method.
 func (m *MockELBV2) CreateListener(arg0 *elbv2.CreateListenerInput) (*elbv2.CreateListenerOutput, error) {
 	m.ctrl.T.Helper()

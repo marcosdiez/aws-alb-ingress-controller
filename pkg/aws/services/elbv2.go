@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -25,18 +27,30 @@ type ELBV2 interface {
 
 	// wrapper to DescribeRulesWithContext API, which aggregates paged results into list.
 	DescribeRulesAsList(ctx context.Context, input *elbv2.DescribeRulesInput) ([]*elbv2.Rule, error)
+
+	// call this method to get an ELBV2 object that has assumed a role.
+	AssumeRole(assumeRoleArn string, externalId string) ELBV2
 }
 
 // NewELBV2 constructs new ELBV2 implementation.
-func NewELBV2(session *session.Session) ELBV2 {
+func NewELBV2(session *session.Session, cloud Cloud, awsCFG *aws.Config) ELBV2 {
 	return &defaultELBV2{
-		ELBV2API: elbv2.New(session),
+		ELBV2API: elbv2.New(session, awsCFG),
+		cloud:    cloud,
 	}
 }
 
 // default implementation for ELBV2.
 type defaultELBV2 struct {
 	elbv2iface.ELBV2API
+	cloud Cloud
+}
+
+func (c *defaultELBV2) AssumeRole(assumeRoleArn string, externalId string) ELBV2 {
+	if assumeRoleArn == "" {
+		return c
+	}
+	return c.cloud.GetAssumedRoleELBV2(assumeRoleArn, externalId)
 }
 
 func (c *defaultELBV2) DescribeLoadBalancersAsList(ctx context.Context, input *elbv2.DescribeLoadBalancersInput) ([]*elbv2.LoadBalancer, error) {
